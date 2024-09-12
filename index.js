@@ -16,64 +16,101 @@ connection.connect((err) => {
   });
 
 app.get('/', (req,res) => {
-    res.send(clients)
+    const query = 'SELECT * FROM clientes';
+  
+    // Executar a consulta
+    connection.query(query, (err, results) => {
+      if (err) {
+        console.error('Erro ao executar a consulta: ' + err.stack);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+        return;
+      }
+  
+      if (results.length > 0) {
+        // Se houver resultados, envia o cliente encontrado como resposta JSON
+        res.json(results);
+      } else {
+        // Se não houver resultados, envia uma mensagem de erro como resposta JSON
+        res.status(404).json({ message: `Nenhum cliente encontrado com o ID: ${id}` });
+      }
+    });
+  });
     
-})
 
-app.get('/:id', (req,res) => {
-    const {id} = req.params
-    const client = clients.find(client => client.id === Number(id) )
-    
-    if(client){
-        res.send(client)
-
-    }else{
-        res.send("Cliente não encontrado")
-        
-    }
-})
+// Rota para obter cliente por ID
+app.get('cliente/:id', (req, res) => {
+    const { id } = req.params;
+  
+    // Definir a consulta SQL com um placeholder para evitar injeção SQL
+    const query = 'SELECT * FROM clientes WHERE id = ?';
+  
+    // Executar a consulta
+    connection.query(query, [id], (err, results) => {
+      if (err) {
+        console.error('Erro ao executar a consulta: ' + err.stack);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+        return;
+      }
+  
+      if (results.length > 0) {
+        // Se houver resultados, envia o cliente encontrado como resposta JSON
+        res.json(results[0]);
+      } else {
+        // Se não houver resultados, envia uma mensagem de erro como resposta JSON
+        res.status(404).json({ message: `Nenhum cliente encontrado com o ID: ${id}` });
+      }
+    });
+  });
 
 app.post('/cliente',(req,res)=> {
     const {name} = req.body
-    const id = clients.length + 1; 
+    const query = 'INSERT INTO clientes (nome) VALUES (?)';
 
-    clients.push({id,name});
-    res.send("Cliente adicionado")
+     // Executar a consulta
+  connection.query(query, [name], (err, results) => {
+    if (err) {
+      console.error('Erro ao executar a consulta: ' + err.stack);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+      return;
+    }
 
-})
+    // Envia uma resposta JSON com o ID do novo cliente inserido
+    res.json({ id: results.insertId, name });
+  });
+});
 
 
+// Atualizando dado a partir do id 
 app.put('/cliente/:id', (req, res) => {
     const { id } = req.params;
     const { name } = req.body;
-    
-    // Encontra o índice do cliente com o ID fornecido
-    const clientIndex = clients.findIndex(client => client.id === Number(id));
-
-    if (clientIndex !== -1) {
-        // Cliente existe, atualiza o nome
-        clients[clientIndex].name = name;
-        res.send("Cliente atualizado");
-    } else {
-        // Cliente não existe, adiciona um novo
-        clients.push({ id: Number(id), name });
-        res.send("Cliente adicionado");
+   const query = 'UPDATE clientes SET nome = ? WHERE id = ?'
+   connection.query(query, [name,id], (err, results) => {
+    if (err) {
+      console.error('Erro ao executar a consulta: ' + err.stack);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+      return;
     }
+    res.json('Cliente atualizado com sucesso');
+  });
 });
 
 // ENDPOINT PARA APAGAR CLIENTE ATRAVES DO ID
 app.delete('/cliente/:id', (req, res) => {
     const { id } = req.params;
-    // Encontra o índice do cliente com o ID fornecido
-    const clientIndex = clients.find(client => client.id === Number(id));
-    const id_delete = clientIndex - 1
-    if (clientIndex) {
-        // Cliente existe, cliente deletado
-        clients.splice(id_delete,1)
-        res.send("Cliente deletado com sucesso");
-    } else {
-        res.send("Cliente não encontrado");
+    const query = 'DELETE FROM clientes WHERE id = ?;';
+
+     // Executar a consulta
+  connection.query(query, [id], (err, results) => {
+    if (err) {
+      console.error('Erro ao executar a consulta: ' + err.stack);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+      return;
     }
+    res.json('Cliente deletado com sucesso');
+  });
+    
+   
 });
 
 
